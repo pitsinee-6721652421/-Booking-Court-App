@@ -18,13 +18,15 @@ class WeatherLocation {
 const weatherLocations = [
   WeatherLocation('Bangkok', 13.7563, 100.5018),
   WeatherLocation('Nakhon Pathom', 13.8199, 100.0621),
+  WeatherLocation('Kamphaeng Saen', 14.0189, 99.9714),
   WeatherLocation('Chiang Mai', 18.7883, 98.9853),
   WeatherLocation('Phuket', 7.8804, 98.3923),
   WeatherLocation('Khon Kaen', 16.4419, 102.8360),
 ];
 
-final selectedLocationProvider =
-    StateProvider<WeatherLocation>((ref) => weatherLocations.first);
+final selectedLocationProvider = StateProvider<WeatherLocation>(
+  (ref) => weatherLocations.first,
+);
 
 final weatherProvider = FutureProvider<WeatherReport>((ref) async {
   final loc = ref.watch(selectedLocationProvider);
@@ -56,7 +58,6 @@ final bookingListProvider = StreamProvider<List<CourtBooking>>((ref) {
         }).toList();
       });
 });
-
 
 class SummaryData {
   final int bookings;
@@ -107,7 +108,7 @@ class HomePage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // เลือกสถานที่ 
+                  // เลือกสถานที่
                   Row(
                     children: [
                       const Icon(Icons.location_on, size: 20),
@@ -133,8 +134,8 @@ class HomePage extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // ▲ จบตัวเลือกสถานที่ ▲
 
+                  // ▲ จบตัวเลือกสถานที่ ▲
                   weatherAsync.when(
                     data: (weather) => Container(
                       width: double.infinity,
@@ -153,7 +154,7 @@ class HomePage extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Court Sharing',
+                                  'Weather today',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -171,18 +172,22 @@ class HomePage extends ConsumerWidget {
                                 ),
                                 Text(
                                   '${weather.city} • ${weather.statusText}',
-                                  style: const TextStyle(color: Colors.white70),
+                                  style: const TextStyle(color: Color.fromARGB(179, 255, 247, 138)),
                                 ),
                               ],
                             ),
                           ),
-                          Icon(
+                          Icon(  //สพาพอากาศ
                             weather.precipitation > 0
-                                ? Icons.grain
-                                : Icons.wb_sunny_rounded,
+                                ? Icons.umbrella
+                                : weather.temperature >= 30
+                                ? Icons.wb_sunny_rounded
+                                : Icons.wb_cloudy,
                             color: weather.precipitation > 0
                                 ? Colors.white
-                                : Colors.amber,
+                                : weather.temperature >= 30
+                                ? Colors.amber
+                                : const Color.fromARGB(179, 255, 255, 255),
                             size: 80,
                           ),
                         ],
@@ -354,17 +359,17 @@ class _ScheduleList extends ConsumerWidget {
           .delete();
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ลบข้อมูลเรียบร้อยแล้ว')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('ลบข้อมูลเรียบร้อยแล้ว')));
       }
 
       return true;
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ลบข้อมูลไม่สำเร็จ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('ลบข้อมูลไม่สำเร็จ: $e')));
       }
 
       return false;
@@ -372,10 +377,7 @@ class _ScheduleList extends ConsumerWidget {
   }
 
   // แก้ไข
-  Future<void> _editBooking(
-    BuildContext context,
-    CourtBooking booking,
-  ) async {
+  Future<void> _editBooking(BuildContext context, CourtBooking booking) async {
     final courtNameController = TextEditingController(text: booking.courtName);
     final hourController = TextEditingController(text: booking.hour);
     final dateController = TextEditingController(text: booking.date);
@@ -493,13 +495,13 @@ class _ScheduleList extends ConsumerWidget {
                           .collection('court_bookings')
                           .doc(booking.id)
                           .update({
-                        'courtName': courtNameController.text.trim(),
-                        'hour': hourController.text.trim(),
-                        'date': dateController.text.trim(),
-                        'bookedBy': bookedByController.text.trim(),
-                        'hourlyRate': rate,
-                        'status': selectedStatus,
-                      });
+                            'courtName': courtNameController.text.trim(),
+                            'hour': hourController.text.trim(),
+                            'date': dateController.text.trim(),
+                            'bookedBy': bookedByController.text.trim(),
+                            'hourlyRate': rate,
+                            'status': selectedStatus,
+                          });
 
                       if (dialogContext.mounted) {
                         Navigator.pop(dialogContext);
@@ -515,9 +517,7 @@ class _ScheduleList extends ConsumerWidget {
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('แก้ไขข้อมูลไม่สำเร็จ: $e'),
-                          ),
+                          SnackBar(content: Text('แก้ไขข้อมูลไม่สำเร็จ: $e')),
                         );
                       }
                     }
@@ -630,9 +630,7 @@ class _ScheduleList extends ConsumerWidget {
               child: Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.sports_tennis),
-                  ),
+                  leading: const CircleAvatar(child: Icon(Icons.sports_tennis)),
                   title: Text('${booking.courtName} • ${booking.hour}'),
                   subtitle: Text('${booking.bookedBy} • ${booking.status}'),
                   trailing: Text('฿${booking.hourlyRate.toStringAsFixed(0)}'),
