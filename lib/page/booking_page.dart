@@ -52,7 +52,7 @@ class BookingPage extends ConsumerWidget {
       color: Color(0xFFEF4444),
     ),
   ];
-
+//หน้าการจอง
   Future<void> _showBookingDialog(BuildContext context, WidgetRef ref, _CourtCardData court) async {
     final courtController = TextEditingController(text: court.name);
     final timeController = TextEditingController(text: '18:00 - 19:00');
@@ -60,7 +60,7 @@ class BookingPage extends ConsumerWidget {
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     final dateController = TextEditingController(text: fmtDate(DateTime.now()));
     final bookedByController = TextEditingController();
-    final priceController = TextEditingController(text: '250');
+    final priceController = TextEditingController(text: '100');
     final statusController = TextEditingController(text: 'จอง');
     DateTime selectedDate = DateTime.now();
     TimeOfDay selectedTime = const TimeOfDay(hour: 18, minute: 0);
