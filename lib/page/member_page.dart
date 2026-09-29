@@ -20,7 +20,6 @@ final memberListProvider = Provider<List<Member>>((ref) {
   ];
 });
 
-
 class MemberPage extends ConsumerWidget {
   const MemberPage({super.key});
 
@@ -43,8 +42,7 @@ class MemberPage extends ConsumerWidget {
         child: GridView.builder(
           itemCount: members.length,
 
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
@@ -73,31 +71,30 @@ class MemberPage extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
                   // รูปสมาชิก
                   ClipOval(
-  child: Image.asset(
-    member.image,
-    width: 100,
-    height: 100,
-    fit: BoxFit.cover,
-    errorBuilder: (context, error, stackTrace) {
-      return Container(
-        width: 100,
-        height: 100,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Color(0xFFDEE6FF),
-        ),
-        child: const Icon(
-          Icons.person,
-          size: 50,
-          color: Color(0xFF2D4BA0),
-        ),
-      );
-    },
-  ),
-),
+                    child: Image.asset(
+                      member.image,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFDEE6FF),
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Color(0xFF2D4BA0),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
 
                   const SizedBox(height: 12),
 
@@ -118,16 +115,12 @@ class MemberPage extends ConsumerWidget {
                   Text(
                     member.id1,
 
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
 
                   const SizedBox(height: 6),
 
                   // Level
-                  
                 ],
               ),
             );

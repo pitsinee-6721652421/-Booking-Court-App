@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../model/court_booking.dart';
-import '../server/database_helper.dart';
+//import '../server/database_helper.dart';
 import 'home_page.dart';
 
 class BookingPage extends ConsumerWidget {
@@ -52,8 +54,12 @@ class BookingPage extends ConsumerWidget {
       color: Color(0xFFEF4444),
     ),
   ];
-//หน้าการจอง
-  Future<void> _showBookingDialog(BuildContext context, WidgetRef ref, _CourtCardData court) async {
+  //หน้าการจอง
+  Future<void> _showBookingDialog(
+    BuildContext context,
+    WidgetRef ref,
+    _CourtCardData court,
+  ) async {
     final courtController = TextEditingController(text: court.name);
     final timeController = TextEditingController(text: '18:00 - 19:00');
     String fmtDate(DateTime d) =>
@@ -94,7 +100,10 @@ class BookingPage extends ConsumerWidget {
                       const Center(
                         child: Text(
                           'เพิ่มการจอง',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -118,7 +127,10 @@ class BookingPage extends ConsumerWidget {
                             final start = pickedTime.format(context);
                             final endHour = (pickedTime.hour + 1) % 24;
                             final endMinute = pickedTime.minute;
-                            final end = TimeOfDay(hour: endHour, minute: endMinute).format(context);
+                            final end = TimeOfDay(
+                              hour: endHour,
+                              minute: endMinute,
+                            ).format(context);
                             timeController.text = '$start - $end';
                             setState(() {});
                           }
@@ -141,7 +153,9 @@ class BookingPage extends ConsumerWidget {
                             context: context,
                             initialDate: selectedDate,
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (pickedDate != null) {
                             selectedDate = pickedDate;
@@ -167,7 +181,10 @@ class BookingPage extends ConsumerWidget {
                           labelText: 'ชื่อผู้จอง',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => (value == null || value.trim().isEmpty) ? 'กรุณากรอกชื่อผู้จอง' : null,
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                            ? 'กรุณากรอกชื่อผู้จอง'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -186,7 +203,12 @@ class BookingPage extends ConsumerWidget {
                           border: OutlineInputBorder(),
                         ),
                         items: statusOptions
-                            .map((status) => DropdownMenuItem(value: status, child: Text(status)))
+                            .map(
+                              (status) => DropdownMenuItem(
+                                value: status,
+                                child: Text(status),
+                              ),
+                            )
                             .toList(),
                         onChanged: (value) {
                           if (value != null) {
@@ -202,36 +224,70 @@ class BookingPage extends ConsumerWidget {
                           onPressed: isSaving
                               ? null
                               : () async {
-                                  if (!(formKey.currentState?.validate() ?? false)) return;
+                                  if (!(formKey.currentState?.validate() ??
+                                      false))
+                                    return;
 
                                   final newBooking = CourtBooking(
                                     courtName: courtController.text.trim(),
                                     hour: timeController.text.trim(),
                                     date: dateController.text.trim(),
                                     bookedBy: bookedByController.text.trim(),
-                                    hourlyRate: double.tryParse(priceController.text.trim()) ?? 250,
+                                    hourlyRate:
+                                        double.tryParse(
+                                          priceController.text.trim(),
+                                        ) ??
+                                        250,
                                     status: statusController.text.trim(),
                                   );
 
                                   setState(() => isSaving = true);
                                   try {
-                                    await DatabaseHelper.instance.insertBooking(newBooking);
+                                    await FirebaseFirestore.instance
+                                        .collection('court_bookings')
+                                        .add({
+                                          'courtName': newBooking.courtName,
+                                          'hour': newBooking.hour,
+                                          'date': newBooking.date,
+                                          'bookedBy': newBooking.bookedBy,
+                                          'hourlyRate': newBooking.hourlyRate,
+                                          'status': newBooking.status,
+                                        });
+                                    // await DatabaseHelper.instance.insertBooking(
+                                    // newBooking,
+                                    //);
+                                    if (sheetContext.mounted) {
+                                      ScaffoldMessenger.of(
+                                        sheetContext,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('🎉 จองสนามสำเร็จ!'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
                                   } catch (e) {
                                     setState(() => isSaving = false);
                                     if (sheetContext.mounted) {
-                                      ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                        SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')),
+                                      ScaffoldMessenger.of(
+                                        sheetContext,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text('บันทึกไม่สำเร็จ: $e'),
+                                        ),
                                       );
                                     }
                                     return;
                                   }
 
                                   // รีเฟรชข้อมูลหน้า Home
-                                  ref.invalidate(bookingListProvider);
-                                  ref.invalidate(summaryProvider);
+                                 // ref.invalidate(bookingListProvider);
+                                  //ref.invalidate(summaryProvider);
 
-                                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                                  ref.read(selectedTabProvider.notifier).state = 0;
+                                  if (sheetContext.mounted)
+                                    Navigator.of(sheetContext).pop();
+                                  ref.read(selectedTabProvider.notifier).state =
+                                      0;
                                 },
                           icon: const Icon(Icons.check),
                           label: const Text('บันทึกข้อมูล'),
@@ -308,22 +364,30 @@ class BookingPage extends ConsumerWidget {
                     itemCount: _courtCards.length,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.85,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.85,
+                        ),
                     itemBuilder: (context, index) {
                       final court = _courtCards[index];
-                      final isAvailable = !bookedCourtNames.contains(court.name);
+                      final isAvailable = !bookedCourtNames.contains(
+                        court.name,
+                      );
 
                       return GestureDetector(
-                        onTap: isAvailable ? () => _showBookingDialog(context, ref, court) : null,
+                        onTap: isAvailable
+                            ? () => _showBookingDialog(context, ref, court)
+                            : null,
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border.all(color: Colors.black54, width: 1.5),
+                            border: Border.all(
+                              color: Colors.black54,
+                              width: 1.5,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Column(
@@ -355,14 +419,22 @@ class BookingPage extends ConsumerWidget {
                               const SizedBox(height: 4),
                               Text(
                                 court.type,
-                                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: isAvailable ? Colors.blue : Colors.red,
+                                    color: isAvailable
+                                        ? Colors.blue
+                                        : Colors.red,
                                     width: 1.2,
                                   ),
                                   borderRadius: BorderRadius.circular(6),
@@ -370,7 +442,9 @@ class BookingPage extends ConsumerWidget {
                                 child: Text(
                                   isAvailable ? 'ว่าง' : 'ไม่ว่าง',
                                   style: TextStyle(
-                                    color: isAvailable ? Colors.blue : Colors.red,
+                                    color: isAvailable
+                                        ? Colors.blue
+                                        : Colors.red,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -388,11 +462,12 @@ class BookingPage extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, __) => const Scaffold(
-        body: Center(child: Text('Unable to load court status')),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (e, _) => Scaffold(
+  body: Center(child: Text('Unable to load court status\n$e')),
+    //  error: (_, __) => const Scaffold(
+    //    body: Center(child: Text('Unable to load court status')),
       ),
     );
   }

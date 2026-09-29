@@ -1,7 +1,8 @@
 name: bookingcourtapp
+
 description: "Booking Court App"
 
-publish_to: 'none' 
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -17,19 +18,26 @@ dependencies:
   http: ^1.2.2
   firebase_core: ^4.15.0
   cloud_firestore: ^6.10.0
+  firebase_auth: ^6.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  confetti: ^0.8.0
 
 flutter:
   uses-material-design: true
+
   assets:
     - lib/image/1.jpg
     - lib/image/2.jpg
     - lib/image/member1.jpg
     - lib/image/member2.jpg
+    - lib/image/logo.png
 
-  
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "lib/image/logo.png"

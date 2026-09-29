@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../model/court_booking.dart';
 import '../server/weather_service.dart';
 
-final selectedTabProvider = StateProvider<int>((ref) => 0);
+final selectedTabProvider = StateProvider<int>((ref) => 2);
 
 //  สถานที่สำหรับดูสภาพอากาศ
 class WeatherLocation {
@@ -641,7 +641,8 @@ class _ScheduleList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Text('Could not load schedule'),
+      //error: (_, __) => const Text('Could not load schedule'),
+      error: (e, _) => Text('Could not load schedule\n$e'),
     );
   }
 }
