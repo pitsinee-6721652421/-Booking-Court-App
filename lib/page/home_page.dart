@@ -7,12 +7,36 @@ import '../server/weather_service.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
+//  สถานที่สำหรับดูสภาพอากาศ
+class WeatherLocation {
+  final String name;
+  final double lat;
+  final double lon;
+  const WeatherLocation(this.name, this.lat, this.lon);
+}
+
+const weatherLocations = [
+  WeatherLocation('Bangkok', 13.7563, 100.5018),
+  WeatherLocation('Nakhon Pathom', 13.8199, 100.0621),
+  WeatherLocation('Chiang Mai', 18.7883, 98.9853),
+  WeatherLocation('Phuket', 7.8804, 98.3923),
+  WeatherLocation('Khon Kaen', 16.4419, 102.8360),
+];
+
+final selectedLocationProvider =
+    StateProvider<WeatherLocation>((ref) => weatherLocations.first);
+
 final weatherProvider = FutureProvider<WeatherReport>((ref) async {
-  final service = WeatherService();
+  final loc = ref.watch(selectedLocationProvider);
+  final service = WeatherService(
+    city: loc.name,
+    latitude: loc.lat,
+    longitude: loc.lon,
+  );
   return service.fetchWeather();
 });
 
-// ดึงข้อมูลการจองแบบ Realtime Stream จาก คอลเลกชัน court_bookings
+// ดึงข้อมูลการจองแบบ court_bookings
 final bookingListProvider = StreamProvider<List<CourtBooking>>((ref) {
   return FirebaseFirestore.instance
       .collection('court_bookings')
@@ -21,7 +45,7 @@ final bookingListProvider = StreamProvider<List<CourtBooking>>((ref) {
         return snapshot.docs.map((doc) {
           final data = doc.data();
           return CourtBooking(
-            id: doc.id, // ใช้ค่า ID เป็น String ตรงๆ จากคอลเลกชันเลย
+            id: doc.id,
             courtName: data['courtName'] ?? '',
             hour: data['hour'] ?? '',
             date: data['date'] ?? '',
@@ -33,23 +57,24 @@ final bookingListProvider = StreamProvider<List<CourtBooking>>((ref) {
       });
 });
 
-// โครงสร้างคำนวณข้อมูลสรุปสถิติแบบกลุ่ม Async
+
 class SummaryData {
   final int bookings;
   final double income;
   const SummaryData({required this.bookings, required this.income});
 }
 
-// ผสมค่ารวมกันเพื่อให้หน้าจอการ์ดสถิติอัปเดตอัตโนมัติเมื่อกดบันทึกข้อมูล
 final summaryProvider = Provider<AsyncValue<SummaryData>>((ref) {
   final bookingsAsync = ref.watch(bookingListProvider);
 
-  if (bookingsAsync.hasError)
+  if (bookingsAsync.hasError) {
     return AsyncValue.error(bookingsAsync.error!, bookingsAsync.stackTrace!);
+  }
   if (!bookingsAsync.hasValue) return const AsyncValue.loading();
 
   final bookings = bookingsAsync.value!;
-  final totalIncome = bookings.fold<double>(0,
+  final totalIncome = bookings.fold<double>(
+    0,
     (sum, booking) => sum + booking.hourlyRate,
   );
 
@@ -65,6 +90,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final weatherAsync = ref.watch(weatherProvider);
     final summaryAsync = ref.watch(summaryProvider);
+    final selectedLocation = ref.watch(selectedLocationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -81,6 +107,34 @@ class HomePage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // เลือกสถานที่ 
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 20),
+                      const SizedBox(width: 8),
+                      DropdownButton<WeatherLocation>(
+                        value: selectedLocation,
+                        underline: const SizedBox.shrink(),
+                        items: weatherLocations
+                            .map(
+                              (loc) => DropdownMenuItem(
+                                value: loc,
+                                child: Text(loc.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (loc) {
+                          if (loc != null) {
+                            ref.read(selectedLocationProvider.notifier).state =
+                                loc;
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // ▲ จบตัวเลือกสถานที่ ▲
+
                   weatherAsync.when(
                     data: (weather) => Container(
                       width: double.infinity,
@@ -122,9 +176,13 @@ class HomePage extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const Icon(
-                            Icons.wb_sunny_rounded,
-                            color: Colors.amber,
+                          Icon(
+                            weather.precipitation > 0
+                                ? Icons.grain
+                                : Icons.wb_sunny_rounded,
+                            color: weather.precipitation > 0
+                                ? Colors.white
+                                : Colors.amber,
                             size: 80,
                           ),
                         ],
@@ -140,7 +198,6 @@ class HomePage extends ConsumerWidget {
 
                   summaryAsync.when(
                     data: (summary) {
-                      // ตัดการ์ด Members ออกจากรายชื่อตรงนี้เรียบร้อยครับ
                       final cards = [
                         _SummaryCard(
                           label: 'Active bookings',
@@ -157,7 +214,6 @@ class HomePage extends ConsumerWidget {
                       ];
 
                       return GridView.count(
-                        // ปรับจาก 3 ช่องเหลือ 2 ช่องเมื่อเปิดบนหน้าจอคอมพิวเตอร์ (isWide) เพื่อความสวยงาม
                         crossAxisCount: isWide ? 2 : 1,
                         shrinkWrap: true,
                         crossAxisSpacing: 16,
@@ -258,13 +314,11 @@ class _SummaryCard extends StatelessWidget {
 class _ScheduleList extends ConsumerWidget {
   const _ScheduleList();
 
-  
   // ลบข้อมูล
   Future<bool> _deleteBooking(
     BuildContext context,
     CourtBooking booking,
   ) async {
-    //ยืนยัน
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -277,15 +331,11 @@ class _ScheduleList extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('No'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('Yes'),
             ),
           ],
@@ -293,13 +343,11 @@ class _ScheduleList extends ConsumerWidget {
       },
     );
 
-    // ถ้ากด No หรือปิด Dialog
     if (confirm != true) {
       return false;
     }
 
     try {
-      // ลบข้อมูลจาก Cloud Firestore
       await FirebaseFirestore.instance
           .collection('court_bookings')
           .doc(booking.id)
@@ -307,20 +355,15 @@ class _ScheduleList extends ConsumerWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ลบข้อมูลเรียบร้อยแล้ว'),
-          ),
+          const SnackBar(content: Text('ลบข้อมูลเรียบร้อยแล้ว')),
         );
       }
 
-      // ให้ Dismissible ลบรายการออกจากหน้าจอ
       return true;
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ลบข้อมูลไม่สำเร็จ: $e'),
-          ),
+          SnackBar(content: Text('ลบข้อมูลไม่สำเร็จ: $e')),
         );
       }
 
@@ -328,25 +371,15 @@ class _ScheduleList extends ConsumerWidget {
     }
   }
 
-  
   // แก้ไข
-
   Future<void> _editBooking(
     BuildContext context,
     CourtBooking booking,
   ) async {
-    final courtNameController =
-        TextEditingController(text: booking.courtName);
-
-    final hourController =
-        TextEditingController(text: booking.hour);
-
-    final dateController =
-        TextEditingController(text: booking.date);
-
-    final bookedByController =
-        TextEditingController(text: booking.bookedBy);
-
+    final courtNameController = TextEditingController(text: booking.courtName);
+    final hourController = TextEditingController(text: booking.hour);
+    final dateController = TextEditingController(text: booking.date);
+    final bookedByController = TextEditingController(text: booking.bookedBy);
     final hourlyRateController = TextEditingController(
       text: booking.hourlyRate.toStringAsFixed(0),
     );
@@ -378,9 +411,7 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     TextField(
                       controller: hourController,
                       decoration: const InputDecoration(
@@ -388,9 +419,7 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     TextField(
                       controller: dateController,
                       decoration: const InputDecoration(
@@ -398,9 +427,7 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     TextField(
                       controller: bookedByController,
                       decoration: const InputDecoration(
@@ -408,9 +435,7 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     TextField(
                       controller: hourlyRateController,
                       keyboardType: TextInputType.number,
@@ -419,10 +444,7 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
-                    // Status
                     DropdownButtonFormField<String>(
                       value: selectedStatus,
                       decoration: const InputDecoration(
@@ -430,14 +452,8 @@ class _ScheduleList extends ConsumerWidget {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(
-                          value: 'จอง',
-                          child: Text('จองแล้ว'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'ว่าง',
-                          child: Text('ว่าง'),
-                        ),
+                        DropdownMenuItem(value: 'จอง', child: Text('จองแล้ว')),
+                        DropdownMenuItem(value: 'ว่าง', child: Text('ว่าง')),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -450,21 +466,14 @@ class _ScheduleList extends ConsumerWidget {
                   ],
                 ),
               ),
-
               actions: [
-                // ยกเลิก
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('ยกเลิก'),
                 ),
-
-                // Submit
                 ElevatedButton(
                   onPressed: () async {
-                    final rate =
-                        double.tryParse(hourlyRateController.text);
+                    final rate = double.tryParse(hourlyRateController.text);
 
                     if (courtNameController.text.trim().isEmpty ||
                         hourController.text.trim().isEmpty ||
@@ -480,23 +489,16 @@ class _ScheduleList extends ConsumerWidget {
                     }
 
                     try {
-                      // Update ข้อมูลบน Cloud Firestore
                       await FirebaseFirestore.instance
                           .collection('court_bookings')
                           .doc(booking.id)
                           .update({
-                        'courtName':
-                            courtNameController.text.trim(),
-                        'hour':
-                            hourController.text.trim(),
-                        'date':
-                            dateController.text.trim(),
-                        'bookedBy':
-                            bookedByController.text.trim(),
-                        'hourlyRate':
-                            rate,
-                        'status':
-                            selectedStatus,
+                        'courtName': courtNameController.text.trim(),
+                        'hour': hourController.text.trim(),
+                        'date': dateController.text.trim(),
+                        'bookedBy': bookedByController.text.trim(),
+                        'hourlyRate': rate,
+                        'status': selectedStatus,
                       });
 
                       if (dialogContext.mounted) {
@@ -506,9 +508,7 @@ class _ScheduleList extends ConsumerWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'แก้ไขข้อมูลเรียบร้อยแล้ว',
-                            ),
+                            content: Text('แก้ไขข้อมูลเรียบร้อยแล้ว'),
                           ),
                         );
                       }
@@ -516,8 +516,7 @@ class _ScheduleList extends ConsumerWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content:
-                                Text('แก้ไขข้อมูลไม่สำเร็จ: $e'),
+                            content: Text('แก้ไขข้อมูลไม่สำเร็จ: $e'),
                           ),
                         );
                       }
@@ -550,9 +549,7 @@ class _ScheduleList extends ConsumerWidget {
           return const Card(
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: Center(
-                child: Text('ไม่มีรายการจองสำหรับวันนี้'),
-              ),
+              child: Center(child: Text('ไม่มีรายการจองสำหรับวันนี้')),
             ),
           );
         }
@@ -561,20 +558,14 @@ class _ScheduleList extends ConsumerWidget {
           itemCount: bookings.length,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-
           itemBuilder: (context, index) {
             final booking = bookings[index];
 
             return Dismissible(
-              
               key: ValueKey(booking.id),
-
-              
               direction: DismissDirection.horizontal,
 
-              
               // Swipe ซ้าย -> ขวา = แก้ไข
-              
               background: Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -585,10 +576,7 @@ class _ScheduleList extends ConsumerWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(
-                      Icons.edit,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.edit, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
                       'แก้ไข',
@@ -601,9 +589,7 @@ class _ScheduleList extends ConsumerWidget {
                 ),
               ),
 
-              
               // ขวา -> ซ้าย = ลบ
-              
               secondaryBackground: Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -623,37 +609,18 @@ class _ScheduleList extends ConsumerWidget {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.delete, color: Colors.white),
                   ],
                 ),
               ),
 
-              
-              // ตรวจสอบว่า Swipe ไปทางไหน
-              
               confirmDismiss: (direction) async {
-
-                // ขวา -> ซ้าย = ลบ
-                if (direction ==
-                    DismissDirection.endToStart) {
-                  return await _deleteBooking(
-                    context,
-                    booking,
-                  );
+                if (direction == DismissDirection.endToStart) {
+                  return await _deleteBooking(context, booking);
                 }
 
-                // ซ้าย -> ขวา = แก้ไข
-                if (direction ==
-                    DismissDirection.startToEnd) {
-                  await _editBooking(
-                    context,
-                    booking,
-                  );
-
-                  // ไม่ให้ Dismissible ลบรายการออก
+                if (direction == DismissDirection.startToEnd) {
+                  await _editBooking(context, booking);
                   return false;
                 }
 
@@ -666,29 +633,17 @@ class _ScheduleList extends ConsumerWidget {
                   leading: const CircleAvatar(
                     child: Icon(Icons.sports_tennis),
                   ),
-                  title: Text(
-                    '${booking.courtName} • ${booking.hour}',
-                  ),
-                  subtitle: Text(
-                    '${booking.bookedBy} • ${booking.status}',
-                  ),
-                  trailing: Text(
-                    '฿${booking.hourlyRate.toStringAsFixed(0)}',
-                  ),
+                  title: Text('${booking.courtName} • ${booking.hour}'),
+                  subtitle: Text('${booking.bookedBy} • ${booking.status}'),
+                  trailing: Text('฿${booking.hourlyRate.toStringAsFixed(0)}'),
                 ),
               ),
             );
           },
         );
       },
-
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
-      ),
-
-      error: (_, __) => const Text(
-        'Could not load schedule',
-      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Text('Could not load schedule'),
     );
   }
 }

@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:9857082835:android:699812f71d856f2fe4fb26",
+        "android_client_info": {
+          "package_name": "com.example.bookingcourtapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvFCrqGMpp0bV5C1uNpRndkSOwT7yE4Mk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:9857082835:android:53ecd42de64135fae4fb26",
         "android_client_info": {
           "package_name": "com.example.flutter_project"

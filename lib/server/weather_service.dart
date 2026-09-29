@@ -1,4 +1,5 @@
 //การเรีนกใช้apiภายนอก
+// การเรียกใช้ API ภายนอก
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -27,12 +28,20 @@ class WeatherReport {
 
 class WeatherService {
   final String city;
+  final double latitude;
+  final double longitude;
 
-  WeatherService({this.city = 'Bangkok'});
+  WeatherService({
+    this.city = 'Bangkok',
+    this.latitude = 13.7563,
+    this.longitude = 100.5018,
+  });
 
   Future<WeatherReport> fetchWeather() async {
     final uri = Uri.parse(
-      'https://api.open-meteo.com/v1/forecast?latitude=13.7563&longitude=100.5018&current=temperature_2m,precipitation&timezone=auto',
+      'https://api.open-meteo.com/v1/forecast'
+      '?latitude=$latitude&longitude=$longitude'
+      '&current=temperature_2m,precipitation&timezone=auto',
     );
 
     final response = await http.get(uri);
