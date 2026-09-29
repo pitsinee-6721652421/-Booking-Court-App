@@ -177,7 +177,7 @@ class HomePage extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          Icon(  //สพาพอากาศ
+                          Icon(  //สพาพอากาศ //เปลี่ยนไอคอน
                             weather.precipitation > 0
                                 ? Icons.umbrella
                                 : weather.temperature >= 30
