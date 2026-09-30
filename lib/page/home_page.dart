@@ -19,9 +19,11 @@ const weatherLocations = [
   WeatherLocation('Bangkok', 13.7563, 100.5018),
   WeatherLocation('Nakhon Pathom', 13.8199, 100.0621),
   WeatherLocation('Kamphaeng Saen', 14.0189, 99.9714),
-  WeatherLocation('Chiang Mai', 18.7883, 98.9853),
+  WeatherLocation('Kasetsart University Kamphaeng Saen Campus',14.023825211876343, 99.97520808550553),
+  //WeatherLocation('Chiang Mai', 18.7883, 98.9853),
   WeatherLocation('Phuket', 7.8804, 98.3923),
-  WeatherLocation('Khon Kaen', 16.4419, 102.8360),
+ 
+  
 ];
 
 final selectedLocationProvider = StateProvider<WeatherLocation>(
@@ -96,7 +98,7 @@ class HomePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Booking record'),
-        backgroundColor: const Color.fromARGB(255, 155, 180, 239),
+        backgroundColor: const Color.fromARGB(255, 201, 217, 255),
         foregroundColor: const Color.fromARGB(255, 45, 25, 172),
       ),
       body: LayoutBuilder(
@@ -113,23 +115,26 @@ class HomePage extends ConsumerWidget {
                     children: [
                       const Icon(Icons.location_on, size: 20),
                       const SizedBox(width: 8),
-                      DropdownButton<WeatherLocation>(
-                        value: selectedLocation,
-                        underline: const SizedBox.shrink(),
-                        items: weatherLocations
-                            .map(
-                              (loc) => DropdownMenuItem(
-                                value: loc,
-                                child: Text(loc.name),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (loc) {
-                          if (loc != null) {
-                            ref.read(selectedLocationProvider.notifier).state =
-                                loc;
-                          }
-                        },
+                      Expanded(
+                        child: DropdownButton<WeatherLocation>(
+                          value: selectedLocation,
+                          underline: const SizedBox.shrink(),
+                          isExpanded: true,
+                          items: weatherLocations
+                              .map(
+                                (loc) => DropdownMenuItem(
+                                  value: loc,
+                                  child: Text(loc.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (loc) {
+                            if (loc != null) {
+                              ref.read(selectedLocationProvider.notifier).state =
+                                  loc;
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -511,13 +516,16 @@ class _ScheduleList extends ConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('แก้ไขข้อมูลเรียบร้อยแล้ว'),
+                            backgroundColor: Color.fromARGB(255, 236, 62, 252),
                           ),
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('แก้ไขข้อมูลไม่สำเร็จ: $e')),
+                          SnackBar(content: Text('แก้ไขข้อมูลไม่สำเร็จ: $e'),
+                          backgroundColor: Colors.red,),
+                          
                         );
                       }
                     }

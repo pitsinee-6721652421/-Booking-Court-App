@@ -114,17 +114,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// =====================================================
-// หน้าหลักของแอป
-// =====================================================
 
+// หน้าหลักของแอป
 class SportBuddyHome extends ConsumerStatefulWidget {
   const SportBuddyHome({super.key});
 
   @override
   ConsumerState<SportBuddyHome> createState() => _SportBuddyHomeState();
 }
-
 class _SportBuddyHomeState extends ConsumerState<SportBuddyHome> {
   static const List<Widget> _pages = [HomePage(), MemberPage(), BookingPage()];
 

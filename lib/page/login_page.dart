@@ -33,7 +33,8 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('เข้าสู่ระบบสำเร็จ')),
+        const SnackBar(content: Text('เข้าสู่ระบบสำเร็จ'),
+          backgroundColor: Colors.green,),
       );
       Navigator.pushReplacement(
         context,

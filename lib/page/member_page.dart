@@ -32,7 +32,7 @@ class MemberPage extends ConsumerWidget {
 
       appBar: AppBar(
         title: const Text('Member Group'),
-        backgroundColor: const Color.fromARGB(255, 87, 133, 242),
+        backgroundColor: const Color.fromARGB(255, 242, 87, 165),
         foregroundColor: Colors.white,
       ),
 
@@ -46,14 +46,14 @@ class MemberPage extends ConsumerWidget {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.8,
+            childAspectRatio: 0.7,
           ),
 
           itemBuilder: (context, index) {
             final member = members[index];
 
             return Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
 
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -72,19 +72,21 @@ class MemberPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // รูปสมาชิก
-                  ClipOval(
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
                     child: Image.asset(
                       member.image,
-                      width: 100,
-                      height: 100,
+                      width: 120,
+                      height: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 100,
-                          height: 100,
+                          width: 120,
+                          height: 120,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Color(0xFFDEE6FF),
+                           
                           ),
                           child: const Icon(
                             Icons.person,
@@ -115,7 +117,7 @@ class MemberPage extends ConsumerWidget {
                   Text(
                     member.id1,
 
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    style: const TextStyle(fontSize: 16, color: Color.fromARGB(255, 55, 53, 53)),
                   ),
 
                   const SizedBox(height: 6),
