@@ -1,14 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:confetti/confetti.dart';
 
 import '../model/court_booking.dart';
-//import '../server/database_helper.dart';
 import 'home_page.dart';
 
-class BookingPage extends ConsumerWidget {
+class BookingPage extends ConsumerStatefulWidget {
   const BookingPage({super.key});
+
+  @override
+  ConsumerState<BookingPage> createState() => _BookingPageState();
+}
+
+class _BookingPageState extends ConsumerState<BookingPage> {
+  late ConfettiController _controllerCenter;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controllerCenter = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controllerCenter.dispose();
+    super.dispose();
+  }
 
   static const List<_CourtCardData> _courtCards = [
     _CourtCardData(
@@ -54,7 +75,8 @@ class BookingPage extends ConsumerWidget {
       color: Color(0xFFEF4444),
     ),
   ];
-  //หน้าการจอง
+
+  // หน้าการจอง
   Future<void> _showBookingDialog(
     BuildContext context,
     WidgetRef ref,
@@ -62,23 +84,33 @@ class BookingPage extends ConsumerWidget {
   ) async {
     final courtController = TextEditingController(text: court.name);
     final timeController = TextEditingController(text: '18:00 - 19:00');
+
     String fmtDate(DateTime d) =>
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    final dateController = TextEditingController(text: fmtDate(DateTime.now()));
+
+    final dateController = TextEditingController(
+      text: fmtDate(DateTime.now()),
+    );
+
     final bookedByController = TextEditingController();
     final priceController = TextEditingController(text: '100');
     final statusController = TextEditingController(text: 'จอง');
+
     DateTime selectedDate = DateTime.now();
     TimeOfDay selectedTime = const TimeOfDay(hour: 18, minute: 0);
+
     final statusOptions = ['จอง', 'ว่าง'];
     final formKey = GlobalKey<FormState>();
+
     bool isSaving = false;
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(22),
+        ),
       ),
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -88,7 +120,8 @@ class BookingPage extends ConsumerWidget {
                 left: 18,
                 right: 18,
                 top: 20,
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+                bottom:
+                    MediaQuery.of(sheetContext).viewInsets.bottom + 16,
               ),
               child: Form(
                 key: formKey,
@@ -106,7 +139,10 @@ class BookingPage extends ConsumerWidget {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      // ชื่อสนาม
                       TextFormField(
                         controller: courtController,
                         readOnly: true,
@@ -115,23 +151,35 @@ class BookingPage extends ConsumerWidget {
                           border: OutlineInputBorder(),
                         ),
                       ),
+
                       const SizedBox(height: 12),
+
+                      // เวลา
                       GestureDetector(
                         onTap: () async {
                           final pickedTime = await showTimePicker(
                             context: context,
                             initialTime: selectedTime,
                           );
+
                           if (pickedTime != null) {
                             selectedTime = pickedTime;
+
                             final start = pickedTime.format(context);
-                            final endHour = (pickedTime.hour + 1) % 24;
+
+                            final endHour =
+                                (pickedTime.hour + 1) % 24;
+
                             final endMinute = pickedTime.minute;
+
                             final end = TimeOfDay(
                               hour: endHour,
                               minute: endMinute,
                             ).format(context);
-                            timeController.text = '$start - $end';
+
+                            timeController.text =
+                                '$start - $end';
+
                             setState(() {});
                           }
                         },
@@ -141,15 +189,20 @@ class BookingPage extends ConsumerWidget {
                             decoration: const InputDecoration(
                               labelText: 'เวลา',
                               border: OutlineInputBorder(),
-                              suffixIcon: Icon(Icons.access_time),
+                              suffixIcon:
+                                  Icon(Icons.access_time),
                             ),
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 12),
+
+                      // วันที่
                       GestureDetector(
                         onTap: () async {
-                          final pickedDate = await showDatePicker(
+                          final pickedDate =
+                              await showDatePicker(
                             context: context,
                             initialDate: selectedDate,
                             firstDate: DateTime.now(),
@@ -157,9 +210,13 @@ class BookingPage extends ConsumerWidget {
                               const Duration(days: 365),
                             ),
                           );
+
                           if (pickedDate != null) {
                             selectedDate = pickedDate;
-                            dateController.text = fmtDate(pickedDate);
+
+                            dateController.text =
+                                fmtDate(pickedDate);
+
                             setState(() {});
                           }
                         },
@@ -169,47 +226,61 @@ class BookingPage extends ConsumerWidget {
                             decoration: const InputDecoration(
                               labelText: 'วันที่',
                               border: OutlineInputBorder(),
-                              suffixIcon: Icon(Icons.calendar_today),
+                              suffixIcon:
+                                  Icon(Icons.calendar_today),
                             ),
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 12),
+
+                      // ชื่อผู้จอง
                       TextFormField(
                         controller: bookedByController,
                         decoration: const InputDecoration(
                           labelText: 'ชื่อผู้จอง',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) =>
-                            (value == null || value.trim().isEmpty)
-                            ? 'กรุณากรอกชื่อผู้จอง'
-                            : null,
+                        validator: (value) {
+                          if (value == null ||
+                              value.trim().isEmpty) {
+                            return 'กรุณากรอกชื่อผู้จอง';
+                          }
+
+                          return null;
+                        },
                       ),
+
                       const SizedBox(height: 12),
+
+                      // ราคา
                       TextFormField(
                         controller: priceController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                          labelText: 'ราคา / ชั่วโมง(100/1ชม.)',
+                          labelText: 'ราคา / ชั่วโมง (100/1ชม.)',
                           border: OutlineInputBorder(),
                         ),
                       ),
+
                       const SizedBox(height: 12),
+
+                      // สถานะ
                       DropdownButtonFormField<String>(
                         value: statusController.text,
                         decoration: const InputDecoration(
                           labelText: 'สถานะ',
                           border: OutlineInputBorder(),
                         ),
-                        items: statusOptions
-                            .map(
-                              (status) => DropdownMenuItem(
-                                value: status,
-                                child: Text(status),
-                              ),
-                            )
-                            .toList(),
+                        items: statusOptions.map(
+                          (status) {
+                            return DropdownMenuItem(
+                              value: status,
+                              child: Text(status),
+                            );
+                          },
+                        ).toList(),
                         onChanged: (value) {
                           if (value != null) {
                             statusController.text = value;
@@ -217,83 +288,122 @@ class BookingPage extends ConsumerWidget {
                           }
                         },
                       ),
+
                       const SizedBox(height: 18),
+
+                      // ปุ่มจอง
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           onPressed: isSaving
                               ? null
                               : () async {
-                                  if (!(formKey.currentState?.validate() ??
-                                      false))
+                                  if (!(formKey.currentState
+                                          ?.validate() ??
+                                      false)) {
                                     return;
+                                  }
 
                                   final newBooking = CourtBooking(
-                                    courtName: courtController.text.trim(),
-                                    hour: timeController.text.trim(),
-                                    date: dateController.text.trim(),
-                                    bookedBy: bookedByController.text.trim(),
+                                    courtName:
+                                        courtController.text.trim(),
+                                    hour:
+                                        timeController.text.trim(),
+                                    date:
+                                        dateController.text.trim(),
+                                    bookedBy:
+                                        bookedByController.text.trim(),
                                     hourlyRate:
                                         double.tryParse(
-                                          priceController.text.trim(),
-                                        ) ??
-                                        250,
-                                    status: statusController.text.trim(),
+                                              priceController
+                                                  .text
+                                                  .trim(),
+                                            ) ??
+                                            100,
+                                    status:
+                                        statusController.text.trim(),
                                   );
 
-                                  setState(() => isSaving = true);
+                                  setState(() {
+                                    isSaving = true;
+                                  });
+
                                   try {
+                                    // บันทึกข้อมูลลง Firebase
                                     await FirebaseFirestore.instance
-                                        .collection('court_bookings')
+                                        .collection(
+                                          'court_bookings',
+                                        )
                                         .add({
-                                          'courtName': newBooking.courtName,
-                                          'hour': newBooking.hour,
-                                          'date': newBooking.date,
-                                          'bookedBy': newBooking.bookedBy,
-                                          'hourlyRate': newBooking.hourlyRate,
-                                          'status': newBooking.status,
-                                        });
-                                    // await DatabaseHelper.instance.insertBooking(
-                                    // newBooking,
-                                    //);
+                                      'courtName':
+                                          newBooking.courtName,
+                                      'hour':
+                                          newBooking.hour,
+                                      'date':
+                                          newBooking.date,
+                                      'bookedBy':
+                                          newBooking.bookedBy,
+                                      'hourlyRate':
+                                          newBooking.hourlyRate,
+                                      'status':
+                                          newBooking.status,
+                                    });
+
+                                    // ปิดหน้าต่างจองก่อน
                                     if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop();
+                                    }
+
+                                    // กลับไปหน้า Home
+                                    ref
+                                        .read(
+                                          selectedTabProvider
+                                              .notifier,
+                                        )
+                                        .state = 0;
+
+                                    // 🎉 แสดง Confetti
+                                    _controllerCenter.play();
+
+                                    // แสดงข้อความสำเร็จ
+                                    if (mounted) {
                                       ScaffoldMessenger.of(
-                                        sheetContext,
+                                        context,
                                       ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('🎉 จองสนามสำเร็จ!'),
-                                          backgroundColor: Colors.green,
+                                          content: Text(
+                                            '🎉 จองสนามสำเร็จ!',
+                                          ),
+                                          backgroundColor:
+                                              Colors.green,
                                         ),
                                       );
                                     }
                                   } catch (e) {
-                                    setState(() => isSaving = false);
+                                    setState(() {
+                                      isSaving = false;
+                                    });
+
                                     if (sheetContext.mounted) {
                                       ScaffoldMessenger.of(
                                         sheetContext,
                                       ).showSnackBar(
                                         SnackBar(
-                                          content: Text('บันทึกไม่สำเร็จ: $e'),
+                                          content: Text(
+                                            'บันทึกไม่สำเร็จ: $e',
+                                          ),
                                         ),
                                       );
                                     }
-                                    return;
                                   }
-
-                                  // รีเฟรชข้อมูลหน้า Home
-                                 // ref.invalidate(bookingListProvider);
-                                  //ref.invalidate(summaryProvider);
-
-                                  if (sheetContext.mounted)
-                                    Navigator.of(sheetContext).pop();
-                                  ref.read(selectedTabProvider.notifier).state =
-                                      0;
                                 },
                           icon: const Icon(Icons.check),
-                          label: const Text('บันทึกข้อมูล'),
+                          label: const Text('จองสำเร็จ'),
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            backgroundColor: const Color(0xFF2563EB),
+                            minimumSize:
+                                const Size.fromHeight(52),
+                            backgroundColor:
+                                const Color(0xFF2563EB),
                           ),
                         ),
                       ),
@@ -309,165 +419,288 @@ class BookingPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
     final bookingsAsync = ref.watch(bookingListProvider);
 
     return bookingsAsync.when(
       data: (bookings) {
         final bookedCourtNames = bookings
             .where((booking) {
-              final normalizedStatus = booking.status.trim();
-              return normalizedStatus == 'จอง' ||
-                  normalizedStatus == 'Booked' ||
-                  normalizedStatus == 'booked' ||
-                  normalizedStatus == 'ไม่ว่าง' ||
-                  normalizedStatus == 'Unavailable';
-            })
-            .map((booking) => booking.courtName.trim())
+          final normalizedStatus =
+              booking.status.trim();
+
+          return normalizedStatus == 'จอง' ||
+              normalizedStatus == 'Booked' ||
+              normalizedStatus == 'booked' ||
+              normalizedStatus == 'ไม่ว่าง' ||
+              normalizedStatus == 'Unavailable';
+        })
+            .map(
+              (booking) => booking.courtName.trim(),
+            )
             .toSet();
 
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: const Color(0xFF16A34A),
+            backgroundColor:
+                const Color(0xFF16A34A),
             foregroundColor: Colors.white,
             centerTitle: true,
             title: const Text('Book a court'),
           ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: 160,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDFF7E8),
-                      border: Border.all(color: Colors.black54),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'สนาม',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontFamily: 'Comic Sans MS',
-                          color: Colors.black87,
+
+          body: Stack(
+            children: [
+              // เนื้อหาหลัก
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: 160,
+                        padding:
+                            const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFDFF7E8),
+                          border: Border.all(
+                            color: Colors.black54,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'สนาม',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontFamily:
+                                  'Comic Sans MS',
+                              color: Colors.black87,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  GridView.builder(
-                    itemCount: _courtCards.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
+
+                      const SizedBox(height: 20),
+
+                      GridView.builder(
+                        itemCount:
+                            _courtCards.length,
+                        shrinkWrap: true,
+                        physics:
+                            const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.85,
                         ),
-                    itemBuilder: (context, index) {
-                      final court = _courtCards[index];
-                      final isAvailable = !bookedCourtNames.contains(
-                        court.name,
-                      );
+                        itemBuilder:
+                            (context, index) {
+                          final court =
+                              _courtCards[index];
 
-                      return GestureDetector(
-                        onTap: isAvailable
-                            ? () => _showBookingDialog(context, ref, court)
-                            : null,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.black54,
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Image.asset(
-                                  court.imagePath,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(
-                                      Icons.sports_tennis,
-                                      size: 54,
-                                      color: Colors.grey,
+                          final isAvailable =
+                              !bookedCourtNames
+                                  .contains(
+                            court.name,
+                          );
+
+                          return GestureDetector(
+                            onTap: isAvailable
+                                ? () =>
+                                    _showBookingDialog(
+                                      context,
+                                      ref,
+                                      court,
+                                    )
+                                : null,
+                            child: Container(
+                              decoration:
+                                  BoxDecoration(
+                                color: Colors.white,
+                                border:
+                                    Border.all(
+                                  color:
+                                      Colors.black54,
+                                  width: 1.5,
+                                ),
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .center,
+                                children: [
+                                  Expanded(
+                                    child:
+                                        Image.asset(
+                                      court.imagePath,
+                                      fit: BoxFit.cover,
+                                      width:
+                                          double.infinity,
+                                      errorBuilder:
+                                          (
+                                        _,
+                                        __,
+                                        ___,
+                                      ) {
+                                        return Container(
+                                          color: Colors
+                                              .grey
+                                              .shade200,
+                                          child:
+                                              const Icon(
+                                            Icons
+                                                .sports_tennis,
+                                            size: 54,
+                                            color: Colors
+                                                .grey,
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                court.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                court.type,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: isAvailable
-                                        ? Colors.blue
-                                        : Colors.red,
-                                    width: 1.2,
+
+                                  const SizedBox(
+                                    height: 8,
                                   ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  isAvailable ? 'ว่าง' : 'ไม่ว่าง',
-                                  style: TextStyle(
-                                    color: isAvailable
-                                        ? Colors.blue
-                                        : Colors.red,
-                                    fontWeight: FontWeight.bold,
+
+                                  Text(
+                                    court.name,
+                                    style:
+                                        const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                    ),
                                   ),
-                                ),
+
+                                  const SizedBox(
+                                    height: 4,
+                                  ),
+
+                                  Text(
+                                    court.type,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors
+                                          .grey
+                                          .shade700,
+                                    ),
+                                  ),
+
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+
+                                  Container(
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration:
+                                        BoxDecoration(
+                                      border:
+                                          Border.all(
+                                        color:
+                                            isAvailable
+                                                ? Colors
+                                                    .blue
+                                                : Colors
+                                                    .red,
+                                        width: 1.2,
+                                      ),
+                                      borderRadius:
+                                          BorderRadius
+                                              .circular(
+                                        6,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isAvailable
+                                          ? 'ว่าง'
+                                          : 'ไม่ว่าง',
+                                      style: TextStyle(
+                                        color:
+                                            isAvailable
+                                                ? Colors
+                                                    .blue
+                                                : Colors
+                                                    .red,
+                                        fontWeight:
+                                            FontWeight
+                                                .bold,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(
+                                    height: 12,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+
+              // 🎉 Confetti
+              Align(
+                alignment: Alignment.center,
+                child: ConfettiWidget(
+                  confettiController:
+                      _controllerCenter,
+                  blastDirectionality:
+                      BlastDirectionality.explosive,
+                  shouldLoop: false,
+                  numberOfParticles: 30,
+                  gravity: 0.3,
+                  emissionFrequency: 0.05,
+                  colors: const [
+                    Colors.green,
+                    Colors.blue,
+                    Colors.pink,
+                    Colors.orange,
+                    Colors.purple,
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(
-  body: Center(child: Text('Unable to load court status\n$e')),
-    //  error: (_, __) => const Scaffold(
-    //    body: Center(child: Text('Unable to load court status')),
+
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            'Unable to load court status\n$e',
+          ),
+        ),
       ),
     );
   }
