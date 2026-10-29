@@ -382,7 +382,13 @@ class _ScheduleList extends ConsumerWidget {
   }
 
   // แก้ไข
-  Future<void> _editBooking(BuildContext context, CourtBooking booking) async {
+  Future<void> _editBooking(
+    BuildContext context, 
+    CourtBooking booking)
+     async {
+    //final messenger = ScaffoldMessenger.of(context); // เพิ่มบรรทัดนี้
+
+
     final courtNameController = TextEditingController(text: booking.courtName);
     final hourController = TextEditingController(text: booking.hour);
     final dateController = TextEditingController(text: booking.date);
@@ -404,7 +410,7 @@ class _ScheduleList extends ConsumerWidget {
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+         builder: (dialogInnerContext, setState) {// builder: (context, setState) {
             return AlertDialog(
               title: const Text('แก้ไขข้อมูลการจอง'),
               content: SingleChildScrollView(
@@ -540,11 +546,11 @@ class _ScheduleList extends ConsumerWidget {
     );
 
     // ป้องกัน memory leak
-    courtNameController.dispose();
-    hourController.dispose();
-    dateController.dispose();
-    bookedByController.dispose();
-    hourlyRateController.dispose();
+    //courtNameController.dispose();
+    //hourController.dispose();
+    //dateController.dispose();
+    //bookedByController.dispose();
+    //hourlyRateController.dispose();
   }
 
   @override
